@@ -40,20 +40,20 @@
 }
 
 #profile img {
-    width: 30vh;
-    height: 30vh;
+    width: min(30vh, 30vw);
+    height: min(30vh, 30vw);
     border-radius: 50%;
 }
 
 #profile h1 {
     margin: 0;
-    font-size: 6.5vh;
+    font-size: 3.1415vw;
     font-weight: 900;
 }
 
 #profile h2 {
     margin: 0;
-    font-size: 3vh;
+    font-size: 1.5vw;
     color: var(--accent);
 }
 
@@ -69,22 +69,22 @@
 }
 
 #profile-horizontal li {
-    width: 11vh;
-    height: 11vh;
+    width: min(11vh, 11vw);
+    height: min(11vh, 11vw);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 #profile-horizontal li img {
-    width: 10vh;
-    height: 10vh;
+    width: min(10vh, 10vw);
+    height: min(10vh, 10vw);
     transition: width 0.3s, height 0.3s;
 }
 
 #profile-horizontal li img:hover {
-    width: 11vh;
-    height: 11vh;
+    width: min(11vh, 11vw);
+    height: min(11vh, 11vw);
 }
 
 #about {
@@ -98,13 +98,13 @@
 #about h1 {
     margin: 0;
     margin-bottom: 1vh;
-    font-size: 4.5vh;
+    font-size: 2.5vw;
 }
 
 #about h2 {
     margin: 0;
     margin-bottom: .5vh;
-    font-size: 3vh;
+    font-size: 1.4vw;
     color: var(--secondary);
 }
 
@@ -119,7 +119,7 @@
 
 #about p {
     margin: 0;
-    font-size: 2.5vh;
+    font-size: 1.2vw;
 }
 
 h2 {
