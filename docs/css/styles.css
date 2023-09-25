@@ -24,7 +24,7 @@ html {
 }
 
 #navbar {
-    font-size: max(3vh, 2.2vw);
+    font-size: min(4.6vh, 4vw);
     position: fixed;
     top: 0;
     left: 0;
