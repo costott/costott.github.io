@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Speeding up fractal rendering</title>
+		<link rel="stylesheet" href="../css/styles.css" />
+		<link rel="stylesheet" href="../css/blog.css" />
+	</head>
+	<body>
+		<div id="navbar">
+			<ul>
+				<li style="float: left; padding-left: 3vw">
+					<a href="../index.html">costott.github.io</a>
+				</li>
+			</ul>
+		</div>
+		<script src="../js/navbar.js"></script>
+
+		<div id="blog-info">
+			<div id="title">
+				<h1 id="name">Speeding up fractal rendering</h1>
+				<p id="date">July 2023</p>
+			</div>
+			<p id="description">
+				The different methods I have encountered for rendering fractal images as
+				quickly as possible.
+			</p>
+		</div>
+
+		<a href="#prologue" class="heading" id="prologue">Prologue</a>
+		<p class="main-content">
+			There are many different types of
+			<a href="https://en.wikipedia.org/wiki/Fractal" target="_blank"
+				>fractals</a
+			>
+			. In this post, the fractals interested are the
+			<a href="https://en.wikipedia.org/wiki/Mandelbrot_set" target="_blank"
+				>Mandelbrot set</a
+			>,
+			<a href="https://en.wikipedia.org/wiki/Mandelbrot_set" target="_blank"
+				>Julia sets</a
+			>, and other related iterative-formula based fractals. Rendering fractals
+			is a very computationally demanding process. For example, the Mandelbrot
+			set needs to perform the iterative formula:
+			<b>z<sub>n+1</sub> = z<sub>n</sub><sup>2</sup> + c</b> (more info about
+			the formula <a href="#the-formula">below</a>) thousands to millions of
+			times for each pixel on the screen. If you want to be re-rendering this
+			fractal image multiple times per second so the user can move around
+			easily, it's a lot of computation.
+		</p>
+		<div class="media-container">
+			<video
+				src="../media/blog/speeding-up-fractal-rendering/samplezoom.mp4"
+				autoplay
+				muted
+				loop
+				controls
+			></video>
+			<p class="media-description">
+				A quick Mandelbrot zoom, rendered on my
+				<a href="https://costott.github.io/mandlebrot/" target="_blank"
+					>fractal rendering software</a
+				>
+			</p>
+		</div>
+		<p class="main-content">
+			Therefore, a number of methods have to be implemented to speed up
+			rendering, as a simple program running on 1 thread and iterating through
+			each pixel is too slow to create a good user experience, and would take
+			weeks to months to render "deep" zooms. The different methods will be
+			ordered in terms of complexity, with the easiest optimisations being
+			discussed first.
+		</p>
+
+		<a href="#the-formula" class="heading" id="the-formula">The Formula</a>
+		<p class="main-content">
+			The rest of this post will focus on the Mandelbrot set formula in order to
+			avoid switching between too many topics, but the same premise will apply
+			to other iterative-formula based fractals.
+			<br />
+			The Mandelbrot set is rendered on the
+			<a href="https://en.wikipedia.org/wiki/Complex_plane" target="_blank"
+				>complex plane</a
+			>, where each pixel on the screen is representing a complex number in the
+			form <b>x + iy</b>. The Mandelbrot formula is then applied to each point:
+			<br /><b>z<sub>n+1</sub> = z<sub>n</sub><sup>2</sup> + c</b><br />
+			In this formula, z and c are complex numbers, where c is a constant. c is
+			defined before the iterations begin; it is the complex number the point on
+			the screen is representing. z starts at 0 + 0i, and we watch to see where
+			it bounces around <b>(orbit)</b> after each iteration. If z explodes off
+			to infinity it is outside the set, and if it stays contained it is inside
+			the set. In order to see if z explodes to infinity, we check to see if |z|
+			gets too big after a set number of iterations, as we can't run the
+			iterations infinitely. As you zoom closer to the boundary of the fractal,
+			more iterations are needed to determine whether z it escaped or not.
+		</p>
+		<div class="media-container">
+			<div id="max-iter-gallery">
+				<img
+					src="../media/blog/speeding-up-fractal-rendering/5iter_1080p.png"
+					alt="5 iterations"
+				/>
+				<img
+					src="../media/blog/speeding-up-fractal-rendering/10iter_1080p.png"
+					alt="10 iterations"
+				/>
+				<img
+					src="../media/blog/speeding-up-fractal-rendering/500iter_1080p.png"
+					alt="500 iterations"
+				/>
+			</div>
+			<p class="media-description">
+				The Mandelbrot set rendered at 5, 10, and 500 maximum iterations.
+				<br />
+				The black area is inside the set.
+			</p>
+		</div>
+
+		<a href="#simple-changes" class="heading" id="simple-changes"
+			>Simple Changes</a
+		>
+		<p class="main-content">
+			The most simple optimisation is to do with checking when |z| diverges to
+			infinity. It has been
+			<a href="https://math.stackexchange.com/a/424331" target="_blank"
+				>proven</a
+			>
+			that whenever <b>|z| > 2</b>, the point will diverge to infinity, so
+			simply stop iterating if the orbit reaches this as you have determined
+			that it's outside the set. Keep in mind that formulas (such as orbit
+			traps) work better / look different with greater bailot values (in this
+			case the bailout is 2), but for the most part the bailout should be at or
+			as close to 2 as possible.<br />
+			<br />
+			Following on from this, another potential simple change is to check if
+			<b>|Re(z)| > 2</b> or <b>|Im(z)| > 2</b>, as these are much more simple to
+			do than calculating <b>|z|</b> (which involves both squaring and a square
+			root). Again, some formulas will look different depending on the shape of
+			the bailout (this one is a square) as the orbit will be different, so
+			while this is a potential fix for a simple escape-time colouring it can
+			ruin the image for others. <br /><br />
+			Another very simple change is to just use a fast programming language. I
+			originally programmed a Mandelbrot visualiser in Python, which was
+			extremely slow and would take over 15 seconds to render a single frame at
+			20 maximum iterations. Even adding optimisations such as using NumPy for
+			faster calculations and taichi for JIT compiling, it was still slow.
+			Switching to Rust without any optimisations gave a program much faster
+			than my Python approach, being able to render an image with 2000 maximum
+			iterations in a matter of milliseconds. I then kept with Rust for the
+			remainder of my
+			<a href="https://costott.github.io/mandlebrot/" target="_blank"
+				>fractal rendering program</a
+			>.
+		</p>
+
+		<a href="#multithreading" class="heading" id="multithreading"
+			>Multithreading</a
+		>
+		<p class="main-content">
+			<a
+				href="https://en.wikipedia.org/wiki/Multithreading_(computer_architecture)"
+				target="_blank"
+				>Multithreading</a
+			>
+			can improve the speed of lots of programs, and fractal rendering is
+			definitelty one of them. The most simple approach is to just split the
+			screen into multiple sections and give them to threads (ideally in a
+			thread pool) to be rendered in parallel. This will greatly reduce render
+			times, and is one of the most important additions for fast renders.
+		</p>
+
+		<a
+			href="#dynamic-resolution-scaling"
+			class="heading"
+			id="dynamic-resolution-scaling"
+			>Dynamic Resolution Scaling</a
+		>
+		<p class="main-content">
+			Screens have millions of pixels on them, meaning each image can take
+			trillions to quadrillions (and so on) of iterations to render. Even with
+			all the other optimisations mentioned in this post, that still won't be
+			fast enough for an average computer to constantly render images at a good
+			enough framerate, especially as the maximum iterations increase as you
+			zoom deeper. <br /><br />
+
+			To reduce the number of individual orbits we need to compute per render,
+			we can use the result of 1 point to map to multiple. For example, the
+			result of 1 pixel can be used to colour an entire 4x4 pixel square, so
+			only 1/16th of the calculations have to be performed. This introduces a
+			trade-off between quality and speed. In the case of real-time rendering so
+			the user can move around the fractal it's more important there is a usable
+			framerate, but for rendering final images/videos the quality should always
+			be at the maximum, so this optimisation doesn't improve those render
+			times.
+		</p>
+		<div class="media-container">
+			<div id="max-iter-gallery">
+				<img
+					src="../media/blog/speeding-up-fractal-rendering/q1_1080p.png"
+					alt="1x1 quality"
+				/>
+				<img
+					src="../media/blog/speeding-up-fractal-rendering/q4_1080p.png"
+					alt="4x4 quality"
+				/>
+				<img
+					src="../media/blog/speeding-up-fractal-rendering/q20_1080p.png"
+					alt="20x20 quality"
+				/>
+			</div>
+			<p class="media-description">
+				An image rendered with 1x1, 4x4, and 20x20 quality at 1080p.
+			</p>
+		</div>
+		<p class="main-content">
+			In order for the quality loss to not be completely detrimental, there are
+			a number of tweaks you can perform. The first is to simply set a maximum
+			'size' so the image will always be intelligible. Another tweak is to take
+			note of the render time while an image is being rendered; if it takes too
+			long and the frame would take too long for your minimum allowed fps,
+			cancel and increase the size. If it takes a substantial amount less time,
+			decrease the size. Finally, if the user stops moving, decrease the size
+			rapidly (my approach was to halve the size each render so it would quickly
+			but cleanly increase quality).
+		</p>
+
+		<a href="#perturbation" class="heading" id="perturbation"
+			>Perturbation Theory</a
+		>
+		<p class="main-content">
+			Out of all the methods mentioned, perturbation is the most effective
+			method to reduce render times (for deep zooms), albeit the most complex.
+			It is the difference between a render taking minutes to milliseconds. This
+			is because once we zoom in past the detail that double-precision floating
+			point numbers can represent, we start having to use arbitrary precision
+			floats which are a lot slower. In mathematics,
+			<a
+				href="https://en.wikipedia.org/wiki/Perturbation_theory"
+				target="_blank"
+				>Perturbation theory</a
+			>
+			is defined as "finding an approximate solution to a problem by solving a
+			related, similar problem". Perturbation is a relatively new area in
+			fractal rendering, first becoming public in 2013 in
+			<a
+				href="https://web.archive.org/web/20160408070057/http://superfractalthing.co.nf/sft_maths.pdf"
+				target="_blank"
+				>this paper</a
+			>, and there are still new discussions and methods using perturbation
+			theory as of writing this post. <br />
+			<br />
+			Perturbation theory works by selecting and computing one point of the
+			render as the
+			<b>reference orbit</b> at arbitrary precision, and using that orbit to
+			calculate where the other points would be at each iteration with double
+			precision, without having to iterate any other point (ideally). A short
+			preview of the maths of how the other points are inferred from the
+			reference orbit for the Mandelbrot set is shown here: <br />
+			<br />
+			reference orbit (note LHS is after, RHS is before)
+			<br />
+			<b>(1) z = z<sup>2</sup> + c</b>
+			<br />
+			orbit of point to infer
+			<br />
+			<b>(2) (z + dz) = (z + dz)<sup>2</sup> + (c + dc)</b>
+			<br />
+			expand (2)
+			<br />
+			<b>(z + dz) = (z<sup>2</sup> + 2*z*dz + dz<sup>2</sup>) + c + dc</b>
+			<br />
+			rearrange, and substitute the z in LHS with the definition of z from
+			equation (1)
+			<br />
+			<b>
+				(z<sup>2</sup> + c) + dz = (z<sup>2</sup> + c) + 2*z*dz + dz<sup>2</sup>
+				+ dc
+			</b>
+			<br />
+			we can now cancel z<sup>2</sup> + c
+			<br />
+			<b> dz = 2*z*dz + dz<sup>2</sup> + dc </b>
+			<br />
+			<br />
+			This allows us to find the offset of the given point to the reference
+			orbit for each iteration! As dz is super small, because when we zoom in
+			the window we're viewing is super tiny, this can be calculated with double
+			precision floating point numbers without the loss of precision (until
+			5e305x magnification).
+		</p>
+
+		<h3 class="subheading">Selecting the Reference Orbit</h3>
+		<p class="main-content">
+			Typically, the point for the reference orbit is taken from the centre of
+			the screen. However, this means the whole image depends on a random point.
+			If at any point the reference orbit escapes to infinity before reaching
+			the maximum iterations, the orbits it took after that will either be too
+			far away the other points won't be accurate, or it will be too large and
+			just be represented as infinity. This means the image won't be accurate,
+			as any points which need more iterations than the reference orbit will be
+			considered as escaping at the same time as the reference orbit. There are
+			a couple ways to resolve this issue, with some outlined here:
+			<br />
+			<br />
+			1. Pre-selecting a known point in the Mandelbrot set to zoom in to, so
+			regardless of the max iterations its orbit can always be used. This is
+			good as it's the most simple approach, requiring no extra calculation.
+			However, it's useless if you want to move around and explore the fractal,
+			as the centre point must be fixed.
+			<br />
+			<br />
+			2. Using new reference orbits for points that need more iterations,
+			resulting in multiple reference orbits being used to calculate the full
+			image. This is usually performed with rebasing, where you rebase to the
+			new orbit (one that needs more iterations) and carry on from there. This
+			is good as it's also simple to implement, and will result in an accurate
+			final image. However, it is a relatively slow apporach as it will require
+			you to do more computations with arbitrary precision numbers.
+			<br />
+			<br />
+			3. Using a method to find the closest point that's in the set (or will
+			require the most iterations) in the given window. This can be achieved
+			with methods such as the
+			<a
+				href="http://www.mrob.com/pub/muency/newtonraphsonmethod.html"
+				target="_blank"
+				>newton-raphson method</a
+			>. This is good as, on the event of finding a point, the computed image
+			will be very accurate. However, this is the most complicated to implement
+			and requires a more calculations than some other methods. <br />
+			<br />
+			4. A new, faster rebasing. Instead of rebasing to a new reference orbit,
+			<a
+				href="https://fractalforums.org/fractal-mathematics-and-new-theories/28/another-solution-to-perturbation-glitches/4360"
+				target="_blank"
+				>it has been found</a
+			>
+			you can simply continue with the same reference orbit but reset the
+			reference orbit back to 0 + 0i (the start) once it explodes to infinity,
+			and carrying on from there (this should happen when calculaing the
+			perturbed points, not the reference orbit, as there's not point
+			re-calculating the reference orbit once it diverges). This requires no
+			extra calculations, but still results in an accurate image. This solution
+			is very new, only being found on fractalforums in
+			<a
+				href="https://fractalforums.org/fractal-mathematics-and-new-theories/28/another-solution-to-perturbation-glitches/4360"
+				target="_blank"
+				>August 2021</a
+			>. This is also
+			<a
+				href="https://github.com/costott/mandlebrot/blob/master/src/layers.rs#L86-L134"
+				target="_blank"
+				>the method I use in my fractal rendering program</a
+			>.
+		</p>
+
+		<h3 class="subheading">Solving perturbation glitches</h3>
+		<p class="main-content">
+			Another issue with perturbation are glitches, which are areas which look
+			very noisy or have areas of uniform colour. These were
+			<a
+				href="http://www.fractalforums.com/announcements-and-news/pertubation-theory-glitches-improvement/msg73027/#msg73027"
+				target="_blank"
+				rel="noopener noreferrer"
+				>solved in 2014</a
+			>
+			, and happen when <b>|z| < |dz|</b>, the reason is because the perturbed
+			orbit goes near 0 + 0i. To solve this, you either select a new reference
+			orbit, or rebase (the same better rebasing can also be used in this
+			instance).
+		</p>
+
+		<br />
+		<br />
+		<p class="main-content">I hope you enjoyed :)</p>
+	</body>
+</html>
