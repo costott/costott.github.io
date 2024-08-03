@@ -11,6 +11,7 @@
     display: flex;
     justify-content: center;
     align-items: flex-end;
+    flex-wrap: wrap;
     margin: 0;
     gap: 10px;
 }
@@ -19,7 +20,8 @@
     color: white;
     margin: 0;
     padding: 0;
-    font-size: 3vw;
+    text-wrap: nowrap;
+    font-size: min(10vh, 7vw);
 }
 
 #date {
@@ -27,13 +29,14 @@
     padding: 0;
     color: var(--secondary);
     font-weight: normal;
-    font-size: 1.5vw;
+    text-wrap: nowrap;
+    font-size: min(5vh, 6vw);
 }
 
 #description {
     margin: 0;
     padding: 0;
-    font-size: 1.5vw;
+    font-size: max(2vh, 2vw);
 }
 
 .subheading {
@@ -108,9 +111,12 @@ video {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-wrap: wrap;
     gap: 5px;
 }
 
 #max-iter-gallery img {
-    max-width: 20vw;
+    max-height: 20vh;
+    min-width: 20vw;
+    max-width: 80vw;
 }
